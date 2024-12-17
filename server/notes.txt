@@ -1,0 +1,141 @@
+yeh Server ko all client msg bhejega specific key liy hme specificid store krni padegi
+
+const connectedClients = new Map(); // Track connected clients
+io.on('connection', (socket)=>{
+    console.log('a user connected');
+    // Send welcome message to new client
+    socket.emit('chat message', 'Server: Welcome to the chat!');
+
+    socket.on('chat message', (msg)=>{
+        console.log('Client message: ' + msg);
+        // this line to broadcast messages to all clients
+        io.emit('chat message', `Client: ${msg}`);
+    })
+
+    socket.on('disconnect', ()=>{
+        console.log('user disconnected');
+    });
+})
+
+// Now you can send to specific client
+rl.on('line', (input) => {if (input) {
+        socket.emit('chat message', `Server: ${input}`);
+        // Only log the server message
+        console.log('\x1b[36m%s\x1b[0m', 'Server message sent: ' + input); // Blue color for server logs
+    }socket.emit('chat message',)
+})
+--------------------------------------------------------
+
+
+// Now you can send to specific client
+io.on('connection', (socket)=>{
+    console.log('a user connected with ID:', socket.id);
+    connectedClients.set(socket.id, socket); // Store socket reference
+    
+    socket.emit('chat message', 'Server: Welcome to the chat!');
+
+    socket.on('chat message', (msg)=>{
+        console.log(`Client ${socket.id}: ${msg}`);
+        socket .emit('chat message', `Client ${socket.id}: ${msg}`); // Send to sender only io sends to all
+    })
+
+    socket.on('disconnect', ()=>{
+        console.log('user disconnected:', socket.id);
+        connectedClients.delete(socket.id); // Remove socket reference
+    });
+})
+
+rl.on('line', (input) => {
+    if (input) {
+        const [targetId, ...messageParts] = input.split(' ');
+        const message = messageParts.join(' ');
+        
+        if (connectedClients.has(targetId)) {
+            // Send to specific client
+            connectedClients.get(targetId).emit('chat message', `Server: ${message}`);
+            console.log('\x1b[36m%s\x1b[0m', `Server message sent to ${targetId}: ${message}`);
+        } else {
+            // Broadcast to all
+            io.emit('chat message', `Server: ${input}`);
+            console.log('\x1b[36m%s\x1b[0m', 'Server message broadcast: ' + input);
+        }
+    }});
+
+
+    ----------------------------------------------
+    server se client ho gya 
+    ab client se client chat implement -
+    iske liye client ki id chahiye jisko msg bhejna hai
+    or server ko check krna padega kon se msg agr private hai socket id check greage msg ke 
+    sath aya hai ki nahi
+    agr hai to send kr dega
+
+    Client side pe 3 main kaam ho rahe hain:
+
+1. Users List Management:
+   - 'users update' event sun raha hai server se
+   - Jab bhi koi connect/disconnect hota hai, dropdown update hota hai
+   - Apne aap ko dropdown se filter kar deta hai (khud ko message nahi bhej sakte)
+
+2. Message Bhejne ka Logic:
+   - Form submit hone pe:
+     * recipient value check karta hai (dropdown se)
+     * message content leta hai (input se)
+     * Dono ko combine karke server ko bhejta hai
+
+3. Message Display Logic:
+   - Server se message aane pe check karta hai:
+     * Normal message hai ya private message
+     * Server ka message hai ya client ka
+     * Message type ke hisab se color change karta hai:
+       - Blue: Server messages
+       - Green: Private messages
+       - Black: Normal messages
+
+
+Step 3: Server-Side Logic (server/index.js)
+Server pe 4 main kaam ho rahe hain:
+
+1. Connections Management:
+   - New client connect hone pe uski ID store karta hai
+   - Disconnect hone pe ID remove karta hai
+   - Connected users ki list maintain karta hai Map mein
+
+2. Users List Broadcasting:
+   - Jab bhi koi connect/disconnect hota hai
+   - Sabhi clients ko updated users list bhej deta hai
+
+3. Message Routing:
+   - Message aane pe check karta hai:
+     * Agar 'broadcast' hai: sabko bhejta hai
+     * Agar specific user hai: sirf us user ko bhejta hai
+   - Private message mein sender ko bhi copy bhejta hai
+
+4. Server Messages:
+   - Terminal se message type karne pe:
+     * Specific user ko ya sabko bhej sakta hai
+     * Format maintain karta hai (Server: prefix)
+
+-----------Complete Flow Example-----------
+
+1. Client A connect hota hai
+   - Server uski ID store karta hai
+   - Sabko new users list bhejta hai
+   - Welcome message bhejta hai
+
+2. Client B connect hota hai
+   - Same process repeat
+   - Dono clients ke dropdown mein ek dusre ki ID aa jati hai
+
+3. Client A private message bhejta hai Client B ko:
+   - A ke browser se message + B ki ID server ko jati hai
+   - Server check karta hai ki B connected hai
+   - Server message sirf B ko forward karta hai
+   - A ko bhi confirmation copy bhejta hai
+   - Message green color mein display hota hai
+
+4. Server message bhejta hai:
+   - Ya to specific client ko
+   - Ya broadcast sabko
+   - Blue color mein display hota hai
+---------------------------------------------

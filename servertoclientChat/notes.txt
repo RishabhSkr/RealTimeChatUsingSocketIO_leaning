@@ -1,0 +1,62 @@
+yeh Server ko all client msg bhejega specific key liy hme specificid store krni padegi
+
+const connectedClients = new Map(); // Track connected clients
+io.on('connection', (socket)=>{
+    console.log('a user connected');
+    // Send welcome message to new client
+    socket.emit('chat message', 'Server: Welcome to the chat!');
+
+    socket.on('chat message', (msg)=>{
+        console.log('Client message: ' + msg);
+        // this line to broadcast messages to all clients
+        io.emit('chat message', `Client: ${msg}`);
+    })
+
+    socket.on('disconnect', ()=>{
+        console.log('user disconnected');
+    });
+})
+
+// Now you can send to specific client
+rl.on('line', (input) => {if (input) {
+        socket.emit('chat message', `Server: ${input}`);
+        // Only log the server message
+        console.log('\x1b[36m%s\x1b[0m', 'Server message sent: ' + input); // Blue color for server logs
+    }socket.emit('chat message',)
+})
+--------------------------------------------------------
+
+
+// Now you can send to specific client
+io.on('connection', (socket)=>{
+    console.log('a user connected with ID:', socket.id);
+    connectedClients.set(socket.id, socket); // Store socket reference
+    
+    socket.emit('chat message', 'Server: Welcome to the chat!');
+
+    socket.on('chat message', (msg)=>{
+        console.log(`Client ${socket.id}: ${msg}`);
+        socket .emit('chat message', `Client ${socket.id}: ${msg}`); // Send to sender only io sends to all
+    })
+
+    socket.on('disconnect', ()=>{
+        console.log('user disconnected:', socket.id);
+        connectedClients.delete(socket.id); // Remove socket reference
+    });
+})
+
+rl.on('line', (input) => {
+    if (input) {
+        const [targetId, ...messageParts] = input.split(' ');
+        const message = messageParts.join(' ');
+        
+        if (connectedClients.has(targetId)) {
+            // Send to specific client
+            connectedClients.get(targetId).emit('chat message', `Server: ${message}`);
+            console.log('\x1b[36m%s\x1b[0m', `Server message sent to ${targetId}: ${message}`);
+        } else {
+            // Broadcast to all
+            io.emit('chat message', `Server: ${input}`);
+            console.log('\x1b[36m%s\x1b[0m', 'Server message broadcast: ' + input);
+        }
+    }});
